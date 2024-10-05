@@ -1,3 +1,53 @@
+---
+//import { Logook } from './loggbook.csv';
+import { string } from 'astro/zod';
+import test from './test.webp';
+
+import fs from 'fs';
+import Papa, { type ParseConfig, type ParseResult } from 'papaparse';
+import path from 'path';
+
+// Assuming your CSV is in the "src/content" folder
+const filePath = path.resolve('src/pages/rowing/logbook.csv');
+const fileContent = fs.readFileSync(filePath, 'utf8');
+
+
+interface Training{
+	timestamp: Date;
+	duration: string;
+	avgstrokesperminute: number;
+	avgheartrate: number;
+	timeper500m: string;
+	kcalperhour: number;
+	powerinwatts: number;
+}
+
+let res : Training[] = [];
+const config: ParseConfig = {
+  delimiter: ";",             // Define the delimiter
+  header: false,               // Treat the first row as header
+  skipEmptyLines:true,       // Skip empty lines
+  dynamicTyping: true
+}
+
+const parsedData = Papa.parse(fileContent, config);
+const trainings : Training[] = [];
+for(let row = 0; row < parsedData.data.length; row++){
+	let r = parsedData.data[row];
+	if(r[4] == "5000m" && !(r[5] == null || r[5].trim() == "")){
+		let training = {
+			timestamp: new Date(r[2] + " " + r[3]),
+			duration: r[5],
+			avgstrokesperminute: r[7],
+			avgheartrate: r[8],
+			timeper500m: r[13],
+			kcalperhour: r[14],
+			powerinwatts: r[15]
+		};
+		trainings.push(training);
+	}
+}
+---
 <html lang="de">
 	<head>
 		<meta charset="utf-8" />
@@ -7,6 +57,24 @@
 		<title>troftu.de</title>
 	</head>
 	<body>
+		<table>
+			<th>
+				<td>Timestamp</td>
+				<td>Duration</td>
+				<td>Avg. HR</td>
+				<td>Kcal</td>
+				<td>Power</td>
+			</th>
+		{trainings.map(x => (
+			<tr>
+				<td>{x.timestamp.toISOString()}</td>
+				<td>{x.duration}</td>
+				<td>{x.avgheartrate} bpm</td>
+				<td>{x.kcalperhour} kcal/h</td>
+				<td>{x.powerinwatts} W</td>
+			</tr>
+		  ))}
+		  </table>
     <h2>2024-10-04</h2>
 		<a href="/rowing/2024-10-04_5000m RowErg Sessions.png">Overall</a><br>
 		<a href="/rowing/2024-10-04_5000m RowErg Sessions Markdorf Edition.png">Markdorf Edition</a><br>

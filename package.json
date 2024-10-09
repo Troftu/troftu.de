@@ -15,5 +15,8 @@
     "astro": "^4.15.12",
     "papaparse": "^5.4.1",
     "typescript": "^5.6.3"
+  },
+  "optionalDependencies": {
+    "@rollup/rollup-linux-x64-gnu": "4.24.0"
   }
 }

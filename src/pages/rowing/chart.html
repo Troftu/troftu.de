@@ -23,11 +23,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rowing Stats Season 2024/2025</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"
-    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"
-    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
   </head>
   <body>
     <h1>Rowing Stats Season 2024/2025</h1>
@@ -76,10 +74,7 @@
       }
 
       // Load CSV file from a relative path and process it
-      loadCSV(
-        "/rowing/concept2-season-2025.csv",
-        processCSVData
-      );
+      loadCSV("/rowing/concept2-season-2025.csv", processCSVData);
 
       // Process CSV data and generate chart
       function processCSVData(data) {
@@ -113,12 +108,11 @@
           const description = row["Description"];
           const date = moment(row["Date"], "YYYY-MM-DD HH:mm:ss").toDate();
           const workTime = parseFloat(row["Work Time (Seconds)"]);
-          const heartRate = row["Avg Heart Rate"]
-            ? row["Avg Heart Rate"]
-            : "N/A";
-          const avgWatts = row["Avg Watts"] ? row["Avg Watts"] : "N/A";
-          const calHr = row["Cal/Hour"] ? row["Cal/Hour"] : "N/A";
-          const pace = row["Pace"] ? row["Pace"] : "N/A";
+          const workTimeFormatted = row["Work Time (Formatted)"];
+          const heartRate = row["Avg Heart Rate"];
+          const avgWatts = row["Avg Watts"];
+          const calHr = row["Cal/Hour"];
+          const pace = row["Pace"];
 
           if (!dataGroups[description]) {
             dataGroups[description] = {
@@ -132,6 +126,7 @@
           dataGroups[description].workTimes.push(workTime);
           dataGroups[description].tooltips.push({
             date: moment(date).format("YYYY-MM-DD HH:mm"),
+            workTimeFormatted: workTimeFormatted,
             heartRate: heartRate,
             avgWatts: avgWatts,
             calHr: calHr,
@@ -242,19 +237,28 @@
                 },
               },
               tooltip: {
+                displayColors: false,
                 callbacks: {
                   title: function (tooltipItems) {
-                    return tooltipItems[0].raw.tooltipData.date;
+                    return `${tooltipItems[0].dataset.label} in ${tooltipItems[0].raw.tooltipData.workTimeFormatted}`;
                   },
                   label: function (tooltipItem) {
                     const tooltipData = tooltipItem.raw.tooltipData;
-                    return [
-                      `${tooltipItem.dataset.label}`,
-                      `Heart Rate: ${tooltipData.heartRate}`,
-                      `Avg Watts: ${tooltipData.avgWatts}`,
-                      `Cal/Hour: ${tooltipData.calHr}`,
-                      `Pace (500m): ${tooltipData.pace}min`,
-                    ];
+
+                    const data = [`${tooltipData.date}`, ""];
+                    if(tooltipData.pace) {
+                      data.push(`${tooltipData.pace} min / 500m`);
+                    }
+                    if(tooltipData.heartRate) {
+                      data.push(`${tooltipData.heartRate} bpm`);
+                    }
+                    if(tooltipData.avgWatts) {
+                      data.push(`${tooltipData.avgWatts} Watts avg`);
+                    }
+                    if(tooltipData.calHr) {
+                      data.push(`${tooltipData.calHr} Cal/Hour`);
+                    }
+                    return data;
                   },
                 },
               },

@@ -3,25 +3,118 @@
   <head>
     <meta name="color-scheme" content="dark light" />
     <style>
-      html, body {
+      /* Box sizing rules */
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      /* Prevent font size inflation */
+      html {
+        -moz-text-size-adjust: none;
+        -webkit-text-size-adjust: none;
+        text-size-adjust: none;
+      }
+
+      /* Remove default margin in favour of better control in authored CSS */
+      body,
+      h1,
+      h2,
+      h3,
+      h4,
+      p,
+      figure,
+      blockquote,
+      dl,
+      dd {
+        margin-block-end: 0;
+      }
+
+      /* Remove list styles on ul, ol elements with a list role, which suggests default styling will be removed */
+      ul[role="list"],
+      ol[role="list"] {
+        list-style: none;
+      }
+
+      /* Set core body defaults */
+      body {
+        min-height: 100vh;
+        line-height: 1.5;
+      }
+
+      /* Set shorter line heights on headings and interactive elements */
+      h1,
+      h2,
+      h3,
+      h4,
+      button,
+      input,
+      label {
+        line-height: 1.1;
+      }
+
+      /* Balance text wrapping on headings */
+      h1,
+      h2,
+      h3,
+      h4 {
+        text-wrap: balance;
+      }
+
+      /* A elements that don't have a class get default styles */
+      a:not([class]) {
+        text-decoration-skip-ink: auto;
+        color: currentColor;
+      }
+
+      /* Make images easier to work with */
+      img,
+      picture {
+        max-width: 100%;
+        display: block;
+      }
+
+      /* Inherit fonts for inputs and buttons */
+      input,
+      button,
+      textarea,
+      select {
+        font-family: inherit;
+        font-size: inherit;
+      }
+
+      /* Make sure textareas without a rows attribute are not tiny */
+      textarea:not([rows]) {
+        min-height: 10em;
+      }
+
+      /* Anything that has been anchored to should have extra scroll margin */
+      :target {
+        scroll-margin-block: 5ex;
+      }
+
+      html,
+      body {
         height: 100%;
+        width: 100%;
         margin: 0;
       }
-      #chart-container {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
+      .page {
+        height: 100%;
+        padding: 10px 20px;
         display: flex;
-        align-items: center;
-        justify-content: center;
+        flex-direction: column;
       }
-      canvas#plot {
-        max-width: 100%;
-        max-height: 100%;
+      .chart-container {
+        flex-grow: 1;
       }
-      
+      #plot {
+        display: block;
+        width: 100%;
+        height: 100%;
+      }
+
       body {
         background-color: #121212;
         color: #ffffff;
@@ -43,22 +136,19 @@
     <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"></script>
   </head>
   <body>
-    <h1>Rowing Stats Season 2024/2025</h1>
-    <p>
-      You can click on the legend items below the chart to show or hide specific
-      rowing activities. This allows you to focus on the data you are interested
-      in.
-    </p>
-
-    <label for="dateRangeStart">Start Date:</label>
-    <input type="date" id="dateRangeStart" value="2024-05-01" />
-    <label for="dateRangeEnd">End Date:</label>
-    <input type="date" id="dateRangeEnd" value="2025-04-30" />
-    <button id="applyFilters">Apply Filters</button>
-    <div id="chart-container">
-      <canvas id="plot"></canvas>
+    <div class="page">
+      <h1>Rowing Stats Season 2024/2025</h1>
+      <div>
+        <label for="dateRangeStart">Start Date:</label>
+        <input type="date" id="dateRangeStart" value="2024-05-01" />
+        <label for="dateRangeEnd">End Date:</label>
+        <input type="date" id="dateRangeEnd" value="2025-04-30" />
+        <button id="applyFilters">Apply Filters</button>
+      </div>
+      <div class="chart-container">
+        <canvas id="plot"></canvas>
+      </div>
     </div>
-
     <script>
       let chart;
 
@@ -206,6 +296,7 @@
           },
           options: {
             responsive: true,
+            maintainAspectRatio: false,
             scales: {
               x: {
                 type: "time",
@@ -264,16 +355,16 @@
                     const tooltipData = tooltipItem.raw.tooltipData;
 
                     const data = [`${tooltipData.date}`, ""];
-                    if(tooltipData.pace) {
+                    if (tooltipData.pace) {
                       data.push(`${tooltipData.pace} min / 500m`);
                     }
-                    if(tooltipData.heartRate) {
+                    if (tooltipData.heartRate) {
                       data.push(`${tooltipData.heartRate} bpm`);
                     }
-                    if(tooltipData.avgWatts) {
+                    if (tooltipData.avgWatts) {
                       data.push(`${tooltipData.avgWatts} Watts avg`);
                     }
-                    if(tooltipData.calHr) {
+                    if (tooltipData.calHr) {
                       data.push(`${tooltipData.calHr} Cal/Hour`);
                     }
                     return data;

@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="color-scheme" content="dark light" />
+    <style>
+      :root {
+        color-scheme: dark light;
+      }
+
+      body {
+        background-color: #121212;
+        color: #ffffff;
+        font-family: Arial, sans-serif;
+      }
+      @media (prefers-color-scheme: light) {
+        body {
+          background-color: #ffffff;
+          color: #000000;
+        }
+      }
+    </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rowing Stats Season 2024/2025</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js"
+    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment"></script>
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.0/papaparse.min.js"
+    ></script>
+  </head>
+  <body>
+    <h1>Rowing Stats Season 2024/2025</h1>
+    <p>
+      You can click on the legend items below the chart to show or hide specific
+      rowing activities. This allows you to focus on the data you are interested
+      in.
+    </p>
+
+    <label for="dateRangeStart">Start Date:</label>
+    <input type="date" id="dateRangeStart" value="2024-05-01" />
+    <label for="dateRangeEnd">End Date:</label>
+    <input type="date" id="dateRangeEnd" value="2025-04-30" />
+    <button id="applyFilters">Apply Filters</button>
+    <canvas id="plot"></canvas>
+
+    <script>
+      let chart;
+
+      // Load CSV file from local filesystem
+      // Load CSV file from a URL using fetch and then process it
+      function loadCSV(filePath, callback) {
+        fetch(filePath)
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Network response was not ok");
+            }
+            return response.text();
+          })
+          .then((csvData) => {
+            Papa.parse(csvData, {
+              header: true,
+              skipEmptyLines: true,
+              complete: function (results) {
+                console.log(results);
+                callback(results.data);
+              },
+            });
+          })
+          .catch((error) => {
+            console.error(
+              "There has been a problem with your fetch operation:",
+              error
+            );
+          });
+      }
+
+      // Load CSV file from a relative path and process it
+      loadCSV(
+        "/rowing/concept2-season-2025.csv",
+        processCSVData
+      );
+
+      // Process CSV data and generate chart
+      function processCSVData(data) {
+        // Update the date range inputs based on the data timeframe
+        if (data.length > 0) {
+          const dates = data.map((row) =>
+            moment(row["Date"], "YYYY-MM-DD HH:mm:ss").toDate()
+          );
+          const minDate = moment(Math.min(...dates)).format("YYYY-MM-DD");
+          const maxDate = moment(Math.max(...dates)).format("YYYY-MM-DD");
+          document.getElementById("dateRangeStart").value = minDate;
+          document.getElementById("dateRangeEnd").value = maxDate;
+        }
+        // Filter rows for specific rowing activities
+        const validDescriptions = [
+          "500m row",
+          "2000m row",
+          "5000m row",
+          "10000m row",
+        ];
+        const filteredRows = data.filter(
+          (row) =>
+            validDescriptions.includes(row["Description"]) &&
+            row["Date"] &&
+            row["Work Time (Seconds)"]
+        );
+
+        // Group data by description
+        const dataGroups = {};
+        filteredRows.forEach((row) => {
+          const description = row["Description"];
+          const date = moment(row["Date"], "YYYY-MM-DD HH:mm:ss").toDate();
+          const workTime = parseFloat(row["Work Time (Seconds)"]);
+          const heartRate = row["Avg Heart Rate"]
+            ? row["Avg Heart Rate"]
+            : "N/A";
+          const avgWatts = row["Avg Watts"] ? row["Avg Watts"] : "N/A";
+          const calHr = row["Cal/Hour"] ? row["Cal/Hour"] : "N/A";
+          const pace = row["Pace"] ? row["Pace"] : "N/A";
+
+          if (!dataGroups[description]) {
+            dataGroups[description] = {
+              dates: [],
+              workTimes: [],
+              tooltips: [],
+            };
+          }
+
+          dataGroups[description].dates.push(date);
+          dataGroups[description].workTimes.push(workTime);
+          dataGroups[description].tooltips.push({
+            date: moment(date).format("YYYY-MM-DD HH:mm"),
+            heartRate: heartRate,
+            avgWatts: avgWatts,
+            calHr: calHr,
+            pace: pace,
+          });
+        });
+
+        // Static color palette for chart lines
+        let colors = getColorPalette();
+
+        function getColorPalette() {
+          return window.matchMedia("(prefers-color-scheme: dark)").matches
+            ? ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"] // Dark mode colors
+            : ["#1b9e77", "#d95f02", "#7570b3", "#e7298a"]; // Light mode colors
+        }
+
+        // Listen for changes in the color scheme preference and update the chart
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", (e) => {
+            colors = getColorPalette();
+            if (chart) {
+              chart.data.datasets.forEach((dataset, index) => {
+                dataset.borderColor = colors[index % colors.length];
+              });
+              chart.update();
+            }
+          }); // Light mode colors
+
+        // Prepare datasets for Chart.js
+        const datasets = Object.keys(dataGroups)
+          .sort((a, b) => parseInt(a) - parseInt(b))
+          .map((description, index) => {
+            return {
+              label: description.split(" ")[0],
+              data: dataGroups[description].dates.map((date, idx) => ({
+                x: date,
+                y: dataGroups[description].workTimes[idx],
+                tooltipData: dataGroups[description].tooltips[idx],
+              })),
+
+              fill: false,
+              borderColor: colors[index % colors.length],
+              borderDash: [],
+              tension: 0.1,
+
+              hidden: description !== "5000m row",
+            };
+          });
+
+        // Plot data using Chart.js
+        const ctx = document.getElementById("plot").getContext("2d");
+        if (chart) {
+          chart.destroy();
+        }
+        chart = new Chart(ctx, {
+          type: "line",
+          data: {
+            datasets: datasets,
+          },
+          options: {
+            responsive: true,
+            scales: {
+              x: {
+                type: "time",
+                time: {
+                  unit: "day",
+                },
+                title: {
+                  display: true,
+                  text: "Workout Timestamp",
+                },
+                ticks: {
+                  source: "auto",
+                },
+              },
+              y: {
+                title: {
+                  display: true,
+                  text: "Workout Duration",
+                },
+                ticks: {
+                  callback: function (value) {
+                    const hours = Math.floor(value / 3600);
+                    const minutes = Math.floor((value % 3600) / 60);
+                    const seconds = (value % 60).toFixed(1);
+                    return hours > 0
+                      ? `${hours}:${minutes.toString().padStart(2, "0")}:${seconds.padStart(4, "0")}`
+                      : `${minutes}:${seconds.padStart(4, "0")}`;
+                  },
+                },
+                beginAtZero: false,
+              },
+            },
+            plugins: {
+              legend: {
+                display: true,
+                position: "top",
+                labels: {
+                  usePointStyle: false,
+                  boxWidth: 40,
+                },
+                onClick: function (e, legendItem) {
+                  const index = legendItem.datasetIndex;
+                  chart.data.datasets[index].hidden =
+                    !chart.data.datasets[index].hidden;
+                  chart.update();
+                },
+              },
+              tooltip: {
+                callbacks: {
+                  title: function (tooltipItems) {
+                    return tooltipItems[0].raw.tooltipData.date;
+                  },
+                  label: function (tooltipItem) {
+                    const tooltipData = tooltipItem.raw.tooltipData;
+                    return [
+                      `${tooltipItem.dataset.label}`,
+                      `Heart Rate: ${tooltipData.heartRate}`,
+                      `Avg Watts: ${tooltipData.avgWatts}`,
+                      `Cal/Hour: ${tooltipData.calHr}`,
+                      `Pace (500m): ${tooltipData.pace}min`,
+                    ];
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      // Apply date range filter to the chart
+      document
+        .getElementById("applyFilters")
+        .addEventListener("click", function () {
+          const startDate = document.getElementById("dateRangeStart").value;
+          const endDate = document.getElementById("dateRangeEnd").value;
+
+          if (startDate && endDate) {
+            const start = moment(startDate).toDate();
+            const end = moment(endDate).endOf("day").toDate();
+
+            chart.data.datasets.forEach((dataset) => {
+              dataset.data = dataset.data.filter(
+                (dataPoint) => dataPoint.x >= start && dataPoint.x <= end
+              );
+            });
+
+            chart.options.scales.y.min = null;
+            chart.options.scales.y.max = null;
+            chart.update();
+          }
+        });
+    </script>
+  </body>
+</html>

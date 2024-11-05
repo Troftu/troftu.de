@@ -1,6 +1,6 @@
 ---
 //import { Logook } from './loggbook.csv';
-import { string } from 'astro/zod';
+/*import { string } from 'astro/zod';
 import test from './test.webp';
 
 import fs from 'fs';
@@ -46,7 +46,7 @@ for(let row = 0; row < parsedData.data.length; row++){
 		};
 		trainings.push(training);
 	}
-}
+}*/
 ---
 <html lang="de">
 	<head>
@@ -57,27 +57,5 @@ for(let row = 0; row < parsedData.data.length; row++){
 		<title>troftu.de</title>
 	</head>
 	<body>
-		<table>
-			<th>
-				<td>Timestamp</td>
-				<td>Duration</td>
-				<td>Avg. HR</td>
-				<td>Kcal</td>
-				<td>Power</td>
-			</th>
-		{trainings.map(x => (
-			<tr>
-				<td>{x.timestamp.toISOString()}</td>
-				<td>{x.duration}</td>
-				<td>{x.avgheartrate} bpm</td>
-				<td>{x.kcalperhour} kcal/h</td>
-				<td>{x.powerinwatts} W</td>
-			</tr>
-		  ))}
-		  </table>
-    <h2>2024-10-04</h2>
-		<a href="/rowing/2024-10-04_5000m RowErg Sessions.png">Overall</a><br>
-		<a href="/rowing/2024-10-04_5000m RowErg Sessions Markdorf Edition.png">Markdorf Edition</a><br>
-    <a href="/rowing/2024-10-04_Logbook_Ranking.webp">Logbook Ranking</a>
   </body>
 </html>

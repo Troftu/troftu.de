@@ -1,0 +1,40 @@
+---
+import Rowing from './Definitions';
+
+export function getStaticPaths() {
+  return redirects.keys().map(x => ({
+    params: {
+        redirect: x,
+      }
+    })).toArray();
+}
+
+export const redirects : Map<string, string> = new Map<string, string>([
+        ["2k", Rowing.Logbook2kLink],
+        ["5k", Rowing.Logbook5kLink],
+        ["10k", Rowing.Logbook10kLink],
+        ["profile", Rowing.LogbookProfileLink],
+        ["log", Rowing.LogbookLogLink]
+    ]);
+
+const { redirect } = Astro.params;
+const redirectTarget : string= redirects.get(redirect) ?? "";
+---
+<!DOCTYPE html>
+<html lang="en">
+  <head data-redirecttarget={redirectTarget}>
+    <meta name="color-scheme" content="dark light" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Redirecting...</title>
+    <script type="text/javascript" is:inline>
+        window.location.href = document.head.dataset.redirecttarget;
+    </script>
+    <noscript>
+        <meta http-equiv="refresh" content={`0; url=${redirectTarget}`}>
+    </noscript>
+  </head>
+  <body>
+    <p>If you are not redirected automatically, please click <a href={redirectTarget}>here</a>.</p>
+  </body>
+</html>

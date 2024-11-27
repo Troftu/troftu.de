@@ -47,15 +47,42 @@ for(let row = 0; row < parsedData.data.length; row++){
 		trainings.push(training);
 	}
 }*/
+
+import Rowing from "./Definitions";
+interface Card {
+  link: string;
+  title: string;
+}
+
+const cards: Card[] = [
+  {
+    link: "rowing/chart",
+    title: "Chart",
+  },
+  {
+    link: Rowing.LogbookProfileLink
+    title: "Logbook Profile",
+  },
+];
 ---
+
 <html lang="de">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/logo.svg" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>troftu.de</title>
-	</head>
-	<body>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta name="viewport" content="width=device-width" />
+    <meta name="generator" content={Astro.generator} />
+    <title>Rowing Overview</title>
+  </head>
+  <body>
+    <div style="display:flex;flex-grow: 1;">
+      {
+        cards.map((card) => (
+          <a href="{card.link}">
+            <div style="background-color:brown;color:white;width:15rem;height:10rem;margin:5rem;"><p style="vertical-align:middle;height:100%;text-center">{card.title}</p></div>
+          </a>
+        ))
+      }
+    </div>
   </body>
 </html>

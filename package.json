@@ -16,6 +16,6 @@
     "astro": "^5.12.8",
     "papaparse": "^5.5.3",
     "tailwindcss": "^4.1.11",
-    "typescript": "^5.8.3"
+    "typescript": "^5.9.2"
   }
 }

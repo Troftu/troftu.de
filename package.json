@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@astrojs/check": "^0.9.4",
-    "@tailwindcss/vite": "^4.1.11",
+    "@tailwindcss/vite": "^4.1.12",
     "@types/papaparse": "^5.3.16",
     "astro": "^5.12.8",
     "papaparse": "^5.5.3",

@@ -15,7 +15,7 @@
     "@types/papaparse": "^5.3.16",
     "astro": "^5.14.7",
     "papaparse": "^5.5.3",
-    "tailwindcss": "^4.1.13",
+    "tailwindcss": "^4.1.15",
     "typescript": "^5.9.3"
   }
 }

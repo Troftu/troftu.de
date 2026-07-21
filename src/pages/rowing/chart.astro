@@ -48,9 +48,10 @@
       import moment from "moment";
       import "chartjs-adapter-moment";
       import Papa from "papaparse";
-      import { normalizeRows } from "../../lib/rowing-data.js";
+      import { filterDataPoints, normalizeRows } from "../../lib/rowing-data.js";
 
       let chart;
+      let sourceDatasets = [];
 
       const colors = () => window.matchMedia("(prefers-color-scheme: dark)").matches
         ? ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
@@ -99,10 +100,11 @@
         }
 
         const canvas = document.querySelector("#plot");
+        sourceDatasets = groupRows(rows);
         chart?.destroy();
         chart = new Chart(canvas, {
           type: "line",
-          data: { datasets: groupRows(rows) },
+          data: { datasets: filterDataPoints(sourceDatasets, new Date(-8640000000000000), new Date(8640000000000000)) },
           options: {
             responsive: true,
             maintainAspectRatio: false,
@@ -141,9 +143,7 @@
         if (!chart) return;
         const start = moment(document.querySelector("#dateRangeStart").value).startOf("day");
         const end = moment(document.querySelector("#dateRangeEnd").value).endOf("day");
-        chart.data.datasets.forEach((dataset) => {
-          dataset.data = dataset.data.filter((point) => moment(point.x).isBetween(start, end, undefined, "[]"));
-        });
+        chart.data.datasets = filterDataPoints(sourceDatasets, start.toDate(), end.toDate());
         chart.update();
       });
 

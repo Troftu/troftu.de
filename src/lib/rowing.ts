@@ -1,4 +1,3 @@
-(eval):5: parse error near `end'
 export const concept2Destinations = {
 	profile: {
 		title: "Concept2 logbook profile",

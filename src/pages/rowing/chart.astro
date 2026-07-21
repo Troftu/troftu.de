@@ -1,0 +1,153 @@
+(eval):5: parse error near `end'
+---
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="color-scheme" content="dark light" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rowing Stats</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html { text-size-adjust: none; }
+      html, body { min-height: 100%; margin: 0; }
+      body {
+        min-height: 100vh;
+        background: #121212;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        line-height: 1.5;
+      }
+      .page { min-height: 100vh; padding: 1rem 1.25rem; display: grid; gap: 1rem; grid-template-rows: auto auto minmax(20rem, 1fr); }
+      .filters { display: flex; flex-wrap: wrap; align-items: end; gap: 0.75rem; }
+      .filters label { display: grid; gap: 0.25rem; }
+      button, input { font: inherit; padding: 0.4rem 0.55rem; }
+      button { cursor: pointer; }
+      .chart-container { min-height: 20rem; position: relative; }
+      @media (prefers-color-scheme: light) {
+        body { background: #fff; color: #000; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <h1>Rowing Stats</h1>
+      <div class="filters">
+        <label>Start date <input type="date" id="dateRangeStart" /></label>
+        <label>End date <input type="date" id="dateRangeEnd" /></label>
+        <button id="applyFilters" type="button">Apply filters</button>
+      </div>
+      <div class="chart-container">
+        <canvas id="plot" aria-label="Rowing workout durations by date"></canvas>
+      </div>
+    </main>
+    <script>
+      // @ts-nocheck
+      import Chart from "chart.js/auto";
+      import moment from "moment";
+      import "chartjs-adapter-moment";
+      import Papa from "papaparse";
+
+      let chart;
+
+      const colors = () => window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+        : ["#1b9e77", "#d95f02", "#7570b3", "#e7298a"];
+
+      function groupRows(rows) {
+        const validDescriptions = ["500m row", "2000m row", "5000m row", "10000m row"];
+        const groups = {};
+
+        rows
+          .filter((row) => validDescriptions.includes(row.Description) && row.Date && row["Work Time (Seconds)"])
+          .forEach((row) => {
+            const description = row.Description;
+            const date = moment(row.Date, "YYYY-MM-DD HH:mm:ss").toDate();
+            const workTime = parseFloat(row["Work Time (Seconds)"]);
+            if (!groups[description]) groups[description] = [];
+            groups[description].push({
+              x: date,
+              y: workTime,
+              tooltipData: {
+                date: moment(date).format("YYYY-MM-DD HH:mm"),
+                workTimeFormatted: row["Work Time (Formatted)"],
+                heartRate: row["Avg Heart Rate"],
+                avgWatts: row["Avg Watts"],
+                calHr: row["Cal/Hour"],
+                pace: row.Pace,
+              },
+            });
+          });
+
+        return Object.keys(groups).sort().map((description, index) => ({
+          label: description.split(" ")[0],
+          data: groups[description],
+          fill: false,
+          borderColor: colors()[index % colors().length],
+          tension: 0.1,
+          hidden: description === "2000m row",
+          pointHitRadius: 15,
+        }));
+      }
+
+      function render(rows) {
+        const dates = rows
+          .map((row) => moment(row.Date, "YYYY-MM-DD HH:mm:ss"))
+          .filter((date) => date.isValid());
+        if (dates.length) {
+          document.querySelector("#dateRangeStart").value = dates.reduce((min, date) => date.isBefore(min) ? date : min).format("YYYY-MM-DD");
+          document.querySelector("#dateRangeEnd").value = dates.reduce((max, date) => date.isAfter(max) ? date : max).format("YYYY-MM-DD");
+        }
+
+        const canvas = document.querySelector("#plot");
+        chart?.destroy();
+        chart = new Chart(canvas, {
+          type: "line",
+          data: { datasets: groupRows(rows) },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { type: "time", time: { unit: "day" }, title: { display: true, text: "Workout timestamp" } },
+              y: { title: { display: true, text: "Workout duration" }, beginAtZero: false },
+            },
+            plugins: {
+              legend: { position: "top" },
+              tooltip: {
+                displayColors: false,
+                callbacks: {
+                  title: (items) => `${items[0].dataset.label} in ${items[0].raw.tooltipData.workTimeFormatted}`,
+                  label: (item) => {
+                    const data = item.raw.tooltipData;
+                    return [data.date, data.pace && `${data.pace} min / 500m`, data.heartRate && `${data.heartRate} bpm`, data.avgWatts && `${data.avgWatts} Watts avg`, data.calHr && `${data.calHr} Cal/Hour`].filter(Boolean);
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      async function loadCSV() {
+        const response = await fetch("/rowing/concept2-season-2025.csv");
+        if (!response.ok) throw new Error(`CSV request failed (${response.status})`);
+        const csv = await response.text();
+        const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
+        render(parsed.data);
+      }
+
+      document.querySelector("#applyFilters").addEventListener("click", () => {
+        if (!chart) return;
+        const start = moment(document.querySelector("#dateRangeStart").value).startOf("day");
+        const end = moment(document.querySelector("#dateRangeEnd").value).endOf("day");
+        chart.data.datasets.forEach((dataset) => {
+          dataset.data = dataset.data.filter((point) => moment(point.x).isBetween(start, end, undefined, "[]"));
+        });
+        chart.update();
+      });
+
+      loadCSV().catch((error) => console.error(error));
+    </script>
+  </body>
+</html>

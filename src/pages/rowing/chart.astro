@@ -27,6 +27,10 @@
       .status { margin: 0; min-height: 1.5em; }
       .status[data-state="error"], .status[data-state="empty"] { color: #ff9b9b; }
       .chart-container { min-height: 20rem; position: relative; }
+      .results { overflow-x: auto; }
+      table { border-collapse: collapse; width: 100%; }
+      caption { font-weight: 700; margin-bottom: 0.5rem; text-align: left; }
+      th, td { border: 1px solid currentColor; padding: 0.35rem 0.5rem; text-align: left; }
       @media (prefers-color-scheme: light) {
         body { background: #fff; color: #000; }
       }
@@ -43,8 +47,27 @@
       <p id="chartStatus" class="status" role="status" aria-live="polite">Loading rowing data…</p>
       <button id="retryLoad" type="button" hidden>Retry loading data</button>
       <div class="chart-container">
-        <canvas id="plot" aria-label="Rowing workout durations by date"></canvas>
+        <canvas id="plot" aria-label="Rowing workout durations by date" aria-describedby="chartSummary"></canvas>
       </div>
+      <p id="chartSummary">Each line represents a rowing distance; use the table below for the exact values.</p>
+      <section class="results" aria-labelledby="resultsHeading">
+        <h2 id="resultsHeading">Workout results</h2>
+        <table id="resultsTable">
+          <caption>Rowing workouts currently shown in the chart</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Workout</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Pace</th>
+              <th scope="col">Heart rate</th>
+              <th scope="col">Watts</th>
+              <th scope="col">Calories/hour</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
     </main>
     <script>
       // @ts-nocheck
@@ -56,8 +79,10 @@
 
       let chart;
       let sourceDatasets = [];
+      let sourceRows = [];
       const status = document.querySelector("#chartStatus");
       const retry = document.querySelector("#retryLoad");
+      const resultsBody = document.querySelector("#resultsTable tbody");
 
       function setStatus(message, state = "loading", canRetry = false) {
         status.textContent = message;
@@ -71,6 +96,7 @@
 
       function groupRows(rows) {
         const groups = {};
+        const dashes = [[], [6, 4], [2, 2], [10, 4, 2, 4]];
 
         rows.forEach((row) => {
             const description = row.description;
@@ -96,10 +122,33 @@
           data: groups[description],
           fill: false,
           borderColor: colors()[index % colors().length],
+          borderDash: dashes[index % dashes.length],
           tension: 0.1,
           hidden: description === "2000m row",
           pointHitRadius: 15,
         }));
+      }
+
+      function renderTable(rows) {
+        resultsBody.replaceChildren();
+        rows.forEach((row) => {
+          const values = [
+            moment(row.date).format("YYYY-MM-DD HH:mm"),
+            row.description,
+            row.workTimeFormatted || `${row.workTimeSeconds} seconds`,
+            row.pace || "—",
+            row.heartRate || "—",
+            row.avgWatts || "—",
+            row.calHr || "—",
+          ];
+          const tableRow = document.createElement("tr");
+          values.forEach((value) => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            tableRow.append(cell);
+          });
+          resultsBody.append(tableRow);
+        });
       }
 
       function render(rows) {
@@ -112,7 +161,9 @@
         }
 
         const canvas = document.querySelector("#plot");
+        sourceRows = rows;
         sourceDatasets = groupRows(rows);
+        renderTable(rows);
         chart?.destroy();
         chart = new Chart(canvas, {
           type: "line",
@@ -175,6 +226,7 @@
         const start = moment(document.querySelector("#dateRangeStart").value).startOf("day");
         const end = moment(document.querySelector("#dateRangeEnd").value).endOf("day");
         chart.data.datasets = filterDataPoints(sourceDatasets, start.toDate(), end.toDate());
+        renderTable(sourceRows.filter((row) => row.date >= start.toDate() && row.date <= end.toDate()));
         chart.update();
       });
 

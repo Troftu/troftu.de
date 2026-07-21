@@ -1,4 +1,3 @@
-(eval):5: parse error near `end'
 const VALID_DESCRIPTIONS = new Set([
   "500m row",
   "2000m row",

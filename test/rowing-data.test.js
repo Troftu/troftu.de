@@ -1,4 +1,3 @@
-(eval):5: parse error near `end'
 import assert from "node:assert/strict";
 import test from "node:test";
 import { filterDataPoints, normalizeRows } from "../src/lib/rowing-data.js";

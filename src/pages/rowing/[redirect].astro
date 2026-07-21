@@ -1,2 +1,16 @@
-(eval):5: parse error near `end'
-zsh:1: no matches found: HEAD:src/pages/rowing/[redirect].astro
+---
+import Concept2Redirect from "../../components/Concept2Redirect.astro";
+import { concept2Destinations } from "../../lib/rowing";
+
+type Destination = (typeof concept2Destinations)[keyof typeof concept2Destinations];
+
+export function getStaticPaths() {
+  return Object.entries(concept2Destinations).map(([redirect, props]) => ({
+    params: { redirect },
+    props,
+  }));
+}
+
+const { title, target } = Astro.props as Destination;
+---
+<Concept2Redirect title={title} target={target} />

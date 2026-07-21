@@ -48,6 +48,7 @@
       import moment from "moment";
       import "chartjs-adapter-moment";
       import Papa from "papaparse";
+      import { normalizeRows } from "../../lib/rowing-data.js";
 
       let chart;
 
@@ -56,26 +57,23 @@
         : ["#1b9e77", "#d95f02", "#7570b3", "#e7298a"];
 
       function groupRows(rows) {
-        const validDescriptions = ["500m row", "2000m row", "5000m row", "10000m row"];
         const groups = {};
 
-        rows
-          .filter((row) => validDescriptions.includes(row.Description) && row.Date && row["Work Time (Seconds)"])
-          .forEach((row) => {
-            const description = row.Description;
-            const date = moment(row.Date, "YYYY-MM-DD HH:mm:ss").toDate();
-            const workTime = parseFloat(row["Work Time (Seconds)"]);
+        rows.forEach((row) => {
+            const description = row.description;
+            const date = moment(row.date).toDate();
+            const workTime = row.workTimeSeconds;
             if (!groups[description]) groups[description] = [];
             groups[description].push({
               x: date,
               y: workTime,
               tooltipData: {
                 date: moment(date).format("YYYY-MM-DD HH:mm"),
-                workTimeFormatted: row["Work Time (Formatted)"],
-                heartRate: row["Avg Heart Rate"],
-                avgWatts: row["Avg Watts"],
-                calHr: row["Cal/Hour"],
-                pace: row.Pace,
+                workTimeFormatted: row.workTimeFormatted,
+                heartRate: row.heartRate,
+                avgWatts: row.avgWatts,
+                calHr: row.calHr,
+                pace: row.pace,
               },
             });
           });
@@ -93,7 +91,7 @@
 
       function render(rows) {
         const dates = rows
-          .map((row) => moment(row.Date, "YYYY-MM-DD HH:mm:ss"))
+          .map((row) => moment(row.date))
           .filter((date) => date.isValid());
         if (dates.length) {
           document.querySelector("#dateRangeStart").value = dates.reduce((min, date) => date.isBefore(min) ? date : min).format("YYYY-MM-DD");
@@ -134,7 +132,9 @@
         if (!response.ok) throw new Error(`CSV request failed (${response.status})`);
         const csv = await response.text();
         const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
-        render(parsed.data);
+        const normalized = normalizeRows(parsed.data);
+        if (!normalized.rows.length) throw new Error("No usable rowing rows were found in the CSV.");
+        render(normalized.rows);
       }
 
       document.querySelector("#applyFilters").addEventListener("click", () => {

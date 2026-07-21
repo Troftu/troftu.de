@@ -9,6 +9,7 @@
     "build": "astro check && astro build",
     "test:data": "node --test test/rowing-data.test.js",
     "test:links": "node --test test/rowing-links.test.js",
+    "test:status": "node --test test/rowing-status.test.js",
     "preview": "astro preview",
     "astro": "astro"
   },

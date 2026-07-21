@@ -24,6 +24,8 @@
       .filters label { display: grid; gap: 0.25rem; }
       button, input { font: inherit; padding: 0.4rem 0.55rem; }
       button { cursor: pointer; }
+      .status { margin: 0; min-height: 1.5em; }
+      .status[data-state="error"], .status[data-state="empty"] { color: #ff9b9b; }
       .chart-container { min-height: 20rem; position: relative; }
       @media (prefers-color-scheme: light) {
         body { background: #fff; color: #000; }
@@ -38,6 +40,8 @@
         <label>End date <input type="date" id="dateRangeEnd" /></label>
         <button id="applyFilters" type="button">Apply filters</button>
       </div>
+      <p id="chartStatus" class="status" role="status" aria-live="polite">Loading rowing data…</p>
+      <button id="retryLoad" type="button" hidden>Retry loading data</button>
       <div class="chart-container">
         <canvas id="plot" aria-label="Rowing workout durations by date"></canvas>
       </div>
@@ -52,6 +56,14 @@
 
       let chart;
       let sourceDatasets = [];
+      const status = document.querySelector("#chartStatus");
+      const retry = document.querySelector("#retryLoad");
+
+      function setStatus(message, state = "loading", canRetry = false) {
+        status.textContent = message;
+        status.dataset.state = state;
+        retry.hidden = !canRetry;
+      }
 
       const colors = () => window.matchMedia("(prefers-color-scheme: dark)").matches
         ? ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
@@ -130,13 +142,32 @@
       }
 
       async function loadCSV() {
-        const response = await fetch("/rowing/concept2-season-2025.csv");
-        if (!response.ok) throw new Error(`CSV request failed (${response.status})`);
+        setStatus("Loading rowing data…");
+        let response;
+        try {
+          response = await fetch("/rowing/concept2-season-2025.csv");
+        } catch {
+          setStatus("The rowing data could not be loaded. Check your connection and try again.", "error", true);
+          return;
+        }
+        if (!response.ok) {
+          setStatus(`The rowing data could not be loaded (HTTP ${response.status}). Try again.`, "error", true);
+          return;
+        }
+
         const csv = await response.text();
         const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
+        if (parsed.errors.length) {
+          setStatus("The rowing data could not be parsed because the CSV is malformed.", "error");
+          return;
+        }
         const normalized = normalizeRows(parsed.data);
-        if (!normalized.rows.length) throw new Error("No usable rowing rows were found in the CSV.");
+        if (!normalized.rows.length) {
+          setStatus("The rowing data contains no usable workout rows.", "empty");
+          return;
+        }
         render(normalized.rows);
+        setStatus(`Loaded ${normalized.rows.length} workout rows.`, "ready");
       }
 
       document.querySelector("#applyFilters").addEventListener("click", () => {
@@ -147,7 +178,8 @@
         chart.update();
       });
 
-      loadCSV().catch((error) => console.error(error));
+      retry.addEventListener("click", loadCSV);
+      loadCSV();
     </script>
   </body>
 </html>

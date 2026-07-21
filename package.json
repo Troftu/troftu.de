@@ -11,6 +11,7 @@
     "test:links": "node --test test/rowing-links.test.js",
     "test:status": "node --test test/rowing-status.test.js",
     "test:table": "node --test test/rowing-table.test.js",
+    "test:redirects": "node --test test/rowing-redirects.test.js",
     "preview": "astro preview",
     "astro": "astro"
   },

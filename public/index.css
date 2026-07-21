@@ -1,42 +1,57 @@
+(eval):5: parse error near `end'
 @import url('fonts/lato700i.css');
 
 body {
     background-color: #003091;
-    overflow: hidden;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
     color: #FFFFFF;
     text-align: center;
-    text-align: center;
     font-family: 'Lato', sans-serif;
+    display: flex;
+    flex-direction: column;
 }
 
 h1 {
     font-weight: 700i;
-    font-size: 3.5em;
+    font-size: clamp(2rem, 8vw, 3.5rem);
+    line-height: 1.1;
+    overflow-wrap: anywhere;
 }
 
 p {
     font-size: 1em;
+    overflow-wrap: anywhere;
 }
 
-.centerbox {    
-    margin: 0;
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    -ms-transform: translate(-50%, -50%);
-    transform: translate(-50%, -50%);
+.centerbox {
+    width: min(70rem, calc(100% - 2rem));
+    margin: auto;
+    padding: clamp(1rem, 5vw, 4rem) 0;
+}
+
+.logolink {
+    align-self: flex-end;
+    display: block;
+    margin: 0 1rem 1rem;
+    padding: 0.5rem;
+}
+
+.logolink:focus-visible {
+    outline: 0.2rem solid #ffffff;
+    outline-offset: 0.2rem;
 }
 
 .logo {
-    position: absolute;
-    right: 0px;
-    bottom: 0px;
-    max-width: 30%;
+    display: block;
+    width: min(10rem, 30vw);
+    max-width: 100%;
     height: auto;
-    width: auto\9;
 }
 
 .logo:hover {
-   transform: scale(1.13) translate(-5%,-5%);
+   transform: scale(1.08);
    transition: .2s ease;   
 }

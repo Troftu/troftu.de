@@ -1,3 +1,4 @@
+(eval):5: parse error near `end'
 {
   "name": "troftu.de",
   "type": "module",
@@ -6,6 +7,7 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro check && astro build",
+    "test:links": "node --test test/rowing-links.test.js",
     "preview": "astro preview",
     "astro": "astro"
   },

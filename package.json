@@ -1,3 +1,4 @@
+(eval):5: parse error near `end'
 {
   "name": "troftu.de",
   "type": "module",
@@ -6,6 +7,12 @@
     "dev": "astro dev",
     "start": "astro dev",
     "build": "astro check && astro build",
+    "test:data": "node --test test/rowing-data.test.js",
+    "test:links": "node --test test/rowing-links.test.js",
+    "test:status": "node --test test/rowing-status.test.js",
+    "test:table": "node --test test/rowing-table.test.js",
+    "test:redirects": "node --test test/rowing-redirects.test.js",
+    "test:home": "node --test test/home-layout.test.js",
     "preview": "astro preview",
     "astro": "astro"
   },
@@ -14,6 +21,9 @@
     "@tailwindcss/vite": "^4.2.2",
     "@types/papaparse": "^5.3.16",
     "astro": "^7.1.3",
+    "chart.js": "^4.5.0",
+    "chartjs-adapter-moment": "^1.0.1",
+    "moment": "^2.30.1",
     "papaparse": "^5.5.3",
     "tailwindcss": "^4.1.18",
     "typescript": "^6.0.2"

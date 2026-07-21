@@ -1,0 +1,32 @@
+(eval):5: parse error near `end'
+---
+interface Props {
+  title: string;
+  target: string;
+}
+
+const { title, target } = Astro.props;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="color-scheme" content="dark light" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="refresh" content={`5; url=${target}`} />
+    <title>{title}</title>
+  </head>
+  <body data-redirect-target={target}>
+    <main>
+      <h1>{title}</h1>
+      <p id="redirectStatus">Redirecting to the Concept2 logbook in a few seconds.</p>
+      <p>
+        <a href={target} target="_blank" rel="noopener noreferrer">Open {title} now</a>
+      </p>
+    </main>
+    <script is:inline>
+      const target = document.body.dataset.redirectTarget;
+      if (target) window.setTimeout(() => window.location.assign(target), 5000);
+    </script>
+  </body>
+</html>

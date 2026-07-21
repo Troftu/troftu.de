@@ -1,0 +1,237 @@
+(eval):5: parse error near `end'
+---
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta name="color-scheme" content="dark light" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rowing Stats</title>
+    <style>
+      *, *::before, *::after { box-sizing: border-box; }
+      html { text-size-adjust: none; }
+      html, body { min-height: 100%; margin: 0; }
+      body {
+        min-height: 100vh;
+        background: #121212;
+        color: #fff;
+        font-family: Arial, sans-serif;
+        line-height: 1.5;
+      }
+      .page { min-height: 100vh; padding: 1rem 1.25rem; display: grid; gap: 1rem; grid-template-rows: auto auto minmax(20rem, 1fr); }
+      .filters { display: flex; flex-wrap: wrap; align-items: end; gap: 0.75rem; }
+      .filters label { display: grid; gap: 0.25rem; }
+      button, input { font: inherit; padding: 0.4rem 0.55rem; }
+      button { cursor: pointer; }
+      .status { margin: 0; min-height: 1.5em; }
+      .status[data-state="error"], .status[data-state="empty"] { color: #ff9b9b; }
+      .chart-container { min-height: 20rem; position: relative; }
+      .results { overflow-x: auto; }
+      table { border-collapse: collapse; width: 100%; }
+      caption { font-weight: 700; margin-bottom: 0.5rem; text-align: left; }
+      th, td { border: 1px solid currentColor; padding: 0.35rem 0.5rem; text-align: left; }
+      @media (prefers-color-scheme: light) {
+        body { background: #fff; color: #000; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page">
+      <h1>Rowing Stats</h1>
+      <div class="filters">
+        <label>Start date <input type="date" id="dateRangeStart" /></label>
+        <label>End date <input type="date" id="dateRangeEnd" /></label>
+        <button id="applyFilters" type="button">Apply filters</button>
+      </div>
+      <p id="chartStatus" class="status" role="status" aria-live="polite">Loading rowing data…</p>
+      <button id="retryLoad" type="button" hidden>Retry loading data</button>
+      <div class="chart-container">
+        <canvas id="plot" aria-label="Rowing workout durations by date" aria-describedby="chartSummary"></canvas>
+      </div>
+      <p id="chartSummary">Each line represents a rowing distance; use the table below for the exact values.</p>
+      <section class="results" aria-labelledby="resultsHeading">
+        <h2 id="resultsHeading">Workout results</h2>
+        <table id="resultsTable">
+          <caption>Rowing workouts currently shown in the chart</caption>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Workout</th>
+              <th scope="col">Duration</th>
+              <th scope="col">Pace</th>
+              <th scope="col">Heart rate</th>
+              <th scope="col">Watts</th>
+              <th scope="col">Calories/hour</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </section>
+    </main>
+    <script>
+      // @ts-nocheck
+      import Chart from "chart.js/auto";
+      import moment from "moment";
+      import "chartjs-adapter-moment";
+      import Papa from "papaparse";
+      import { filterDataPoints, normalizeRows } from "../../lib/rowing-data.js";
+
+      let chart;
+      let sourceDatasets = [];
+      let sourceRows = [];
+      const status = document.querySelector("#chartStatus");
+      const retry = document.querySelector("#retryLoad");
+      const resultsBody = document.querySelector("#resultsTable tbody");
+
+      function setStatus(message, state = "loading", canRetry = false) {
+        status.textContent = message;
+        status.dataset.state = state;
+        retry.hidden = !canRetry;
+      }
+
+      const colors = () => window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728"]
+        : ["#1b9e77", "#d95f02", "#7570b3", "#e7298a"];
+
+      function groupRows(rows) {
+        const groups = {};
+        const dashes = [[], [6, 4], [2, 2], [10, 4, 2, 4]];
+
+        rows.forEach((row) => {
+            const description = row.description;
+            const date = moment(row.date).toDate();
+            const workTime = row.workTimeSeconds;
+            if (!groups[description]) groups[description] = [];
+            groups[description].push({
+              x: date,
+              y: workTime,
+              tooltipData: {
+                date: moment(date).format("YYYY-MM-DD HH:mm"),
+                workTimeFormatted: row.workTimeFormatted,
+                heartRate: row.heartRate,
+                avgWatts: row.avgWatts,
+                calHr: row.calHr,
+                pace: row.pace,
+              },
+            });
+          });
+
+        return Object.keys(groups).sort().map((description, index) => ({
+          label: description.split(" ")[0],
+          data: groups[description],
+          fill: false,
+          borderColor: colors()[index % colors().length],
+          borderDash: dashes[index % dashes.length],
+          tension: 0.1,
+          hidden: description === "2000m row",
+          pointHitRadius: 15,
+        }));
+      }
+
+      function renderTable(rows) {
+        resultsBody.replaceChildren();
+        rows.forEach((row) => {
+          const values = [
+            moment(row.date).format("YYYY-MM-DD HH:mm"),
+            row.description,
+            row.workTimeFormatted || `${row.workTimeSeconds} seconds`,
+            row.pace || "—",
+            row.heartRate || "—",
+            row.avgWatts || "—",
+            row.calHr || "—",
+          ];
+          const tableRow = document.createElement("tr");
+          values.forEach((value) => {
+            const cell = document.createElement("td");
+            cell.textContent = value;
+            tableRow.append(cell);
+          });
+          resultsBody.append(tableRow);
+        });
+      }
+
+      function render(rows) {
+        const dates = rows
+          .map((row) => moment(row.date))
+          .filter((date) => date.isValid());
+        if (dates.length) {
+          document.querySelector("#dateRangeStart").value = dates.reduce((min, date) => date.isBefore(min) ? date : min).format("YYYY-MM-DD");
+          document.querySelector("#dateRangeEnd").value = dates.reduce((max, date) => date.isAfter(max) ? date : max).format("YYYY-MM-DD");
+        }
+
+        const canvas = document.querySelector("#plot");
+        sourceRows = rows;
+        sourceDatasets = groupRows(rows);
+        renderTable(rows);
+        chart?.destroy();
+        chart = new Chart(canvas, {
+          type: "line",
+          data: { datasets: filterDataPoints(sourceDatasets, new Date(-8640000000000000), new Date(8640000000000000)) },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { type: "time", time: { unit: "day" }, title: { display: true, text: "Workout timestamp" } },
+              y: { title: { display: true, text: "Workout duration" }, beginAtZero: false },
+            },
+            plugins: {
+              legend: { position: "top" },
+              tooltip: {
+                displayColors: false,
+                callbacks: {
+                  title: (items) => `${items[0].dataset.label} in ${items[0].raw.tooltipData.workTimeFormatted}`,
+                  label: (item) => {
+                    const data = item.raw.tooltipData;
+                    return [data.date, data.pace && `${data.pace} min / 500m`, data.heartRate && `${data.heartRate} bpm`, data.avgWatts && `${data.avgWatts} Watts avg`, data.calHr && `${data.calHr} Cal/Hour`].filter(Boolean);
+                  },
+                },
+              },
+            },
+          },
+        });
+      }
+
+      async function loadCSV() {
+        setStatus("Loading rowing data…");
+        let response;
+        try {
+          response = await fetch("/rowing/concept2-season-2025.csv");
+        } catch {
+          setStatus("The rowing data could not be loaded. Check your connection and try again.", "error", true);
+          return;
+        }
+        if (!response.ok) {
+          setStatus(`The rowing data could not be loaded (HTTP ${response.status}). Try again.`, "error", true);
+          return;
+        }
+
+        const csv = await response.text();
+        const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true });
+        if (parsed.errors.length) {
+          setStatus("The rowing data could not be parsed because the CSV is malformed.", "error");
+          return;
+        }
+        const normalized = normalizeRows(parsed.data);
+        if (!normalized.rows.length) {
+          setStatus("The rowing data contains no usable workout rows.", "empty");
+          return;
+        }
+        render(normalized.rows);
+        setStatus(`Loaded ${normalized.rows.length} workout rows.`, "ready");
+      }
+
+      document.querySelector("#applyFilters").addEventListener("click", () => {
+        if (!chart) return;
+        const start = moment(document.querySelector("#dateRangeStart").value).startOf("day");
+        const end = moment(document.querySelector("#dateRangeEnd").value).endOf("day");
+        chart.data.datasets = filterDataPoints(sourceDatasets, start.toDate(), end.toDate());
+        renderTable(sourceRows.filter((row) => row.date >= start.toDate() && row.date <= end.toDate()));
+        chart.update();
+      });
+
+      retry.addEventListener("click", loadCSV);
+      loadCSV();
+    </script>
+  </body>
+</html>

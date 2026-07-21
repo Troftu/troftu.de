@@ -10,7 +10,7 @@
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/check": "^0.9.8",
+    "@astrojs/check": "^0.9.9",
     "@tailwindcss/vite": "^4.2.2",
     "@types/papaparse": "^5.3.16",
     "astro": "^7.1.3",

@@ -59,3 +59,10 @@ export function normalizeRows(rows) {
 
   return { rows: normalized, skipped };
 }
+
+export function filterDataPoints(datasets, start, end) {
+  return datasets.map((dataset) => ({
+    ...dataset,
+    data: dataset.data.filter((point) => point.x >= start && point.x <= end),
+  }));
+}

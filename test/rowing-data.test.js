@@ -1,7 +1,7 @@
 (eval):5: parse error near `end'
 import assert from "node:assert/strict";
 import test from "node:test";
-import { normalizeRows } from "../src/lib/rowing-data.js";
+import { filterDataPoints, normalizeRows } from "../src/lib/rowing-data.js";
 
 test("normalizes valid rows and reports skipped invalid rows", () => {
   const result = normalizeRows([
@@ -25,4 +25,22 @@ test("returns no records when all candidate rows are unusable", () => {
 
   assert.deepEqual(result.rows, []);
   assert.equal(result.skipped, 2);
+});
+
+test("filtering can narrow and then widen without losing source points", () => {
+  const datasets = [{
+    label: "2000m",
+    data: [
+      { x: new Date("2025-01-01T00:00:00Z"), y: 400 },
+      { x: new Date("2025-01-15T00:00:00Z"), y: 410 },
+      { x: new Date("2025-02-01T00:00:00Z"), y: 420 },
+    ],
+  }];
+
+  const narrow = filterDataPoints(datasets, new Date("2025-01-10T00:00:00Z"), new Date("2025-01-20T00:00:00Z"));
+  const wide = filterDataPoints(datasets, new Date("2025-01-01T00:00:00Z"), new Date("2025-02-01T00:00:00Z"));
+
+  assert.deepEqual(narrow[0].data.map((point) => point.y), [410]);
+  assert.deepEqual(wide[0].data.map((point) => point.y), [400, 410, 420]);
+  assert.deepEqual(datasets[0].data.map((point) => point.y), [400, 410, 420]);
 });

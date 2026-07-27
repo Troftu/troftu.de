@@ -19,7 +19,7 @@
     "@astrojs/check": "^0.9.9",
     "@tailwindcss/vite": "^4.2.2",
     "@types/papaparse": "^5.3.16",
-    "astro": "^7.1.3",
+    "astro": "^7.1.4",
     "chart.js": "^4.5.0",
     "chartjs-adapter-moment": "^1.0.1",
     "moment": "^2.30.1",
